@@ -55,6 +55,7 @@ with open("employee.json", "r") as file:
     print(loaded_employee["skills"])
 
 #client setup
+from groq import Groq
 from dotenv import load_dotenv
 import os
 load_dotenv()
