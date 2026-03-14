@@ -107,6 +107,15 @@ Now answer all questions in the same structured format.
 
     return ai_reply, conversation
 
+def format_response(ai_reply, intent, user_input):
+    return {
+        "question": user_input,
+        "topic": intent,
+        "answer": ai_reply,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "model": "llama-3.3-70b-versatile"
+    }
+
 def run_chatbot():
     print("=" * 50)
     print("   🤖 HR Expert Chatbot powered by LLaMA")
@@ -139,6 +148,7 @@ def run_chatbot():
         elif user_input == "":
             print("Please type a question!")
             continue
+
         intent = detect_intent(user_input)
         print(f"\n📌 Topic detected: {intent.upper()}")
         print("\n🤖 Bot: thinking...")
@@ -150,25 +160,17 @@ def run_chatbot():
 
         ai_reply, conversation = ask_hr_bot(formatted_input, conversation)
         structured_response = format_response(ai_reply, intent, user_input)
-        print(f"\n📌 topic:{structured['topic'].upper()}")
-        print(f"\n🤖 Bot: {structured['answer']}")
+        print(f"\n📌 Topic: {structured_response['topic'].upper()}")
+        print(f"\n🤖 Bot: {structured_response['answer']}")
 
         chat_history.append({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "user": user_input,
             "bot": ai_reply,
-            "topic":intent
+            "topic": intent
         })
 
         save_chat_history(chat_history)
-        def format_response(ai_reply, intent, user_input):
-            return{
-                "question": user_input,
-                "topic": intent,
-                "answer": ai_reply
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                model: "llama-3.3-70b-versatile"
-            }
 
 # ── Run ───
 run_chatbot()
