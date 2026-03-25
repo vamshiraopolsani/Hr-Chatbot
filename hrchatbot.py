@@ -88,16 +88,18 @@ def ask_hr_bot(user_message, conversation, intent):
     # Sliding window: only send last 6 messages (3 Q&A turns) to avoid clutter
     recent_history = conversation[-6:]
 
-    response = client.chat.completions.create(
-        temperature=0.3,
-        max_tokens=1024,
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": system_prompt}
-        ] + recent_history
-    )
-
-    ai_reply = response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            temperature=0.3,
+            max_tokens=1024,
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt}
+            ] + recent_history
+        )
+        ai_reply = response.choices[0].message.content
+    except Exception as e:
+        ai_reply = f"⚠️ Sorry, I couldn't process your request. Error: {str(e)}"
 
     conversation.append({
         "role": "assistant",
