@@ -2,3 +2,12 @@ chat_history.json
 *.pyc
 __pycache__/
 .env
+.venv/
+.vscode/
+day0.py
+day1.py
+day2.py
+employee.json
+employee.txt
+miniprojectday1.py
+testapi.py
