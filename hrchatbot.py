@@ -2,16 +2,6 @@ import json
 from groq import Groq
 from datetime import datetime
 
-def create_hr_prompt(topic, context="", tone="professional"):
-    return f"""
-    Topic: {topic}
-    Context: {context}
-    Tone: {tone}
-    
-    Provide a clear structured answer about the topic above.
-    Use bullet points where necessary.
-    """
-
 #---setup---
 
 from dotenv import load_dotenv
@@ -50,52 +40,61 @@ def save_chat_history(history):
     with open(CHAT_HISTORY_FILE,"w") as file:
         json.dump(history, file, indent=4)
 
-def ask_hr_bot(user_message, conversation):
+def ask_hr_bot(user_message, conversation, intent):
+    # Dynamic system prompt based on detected intent
+    dynamic_rule = ""
+    if intent == "absence":
+        dynamic_rule = "CRITICAL FOCUS: Oracle Absence Management, Accrual Plans, and Leave Entitlements."
+    elif intent == "core_hr":
+        dynamic_rule = "CRITICAL FOCUS: Oracle Core HR, Security Profiles, Descriptive Flexfields (DFFs), and Worker Assignments."
+    elif intent == "talent":
+        dynamic_rule = "CRITICAL FOCUS: Talent Management, Performance Goals, and Succession."
+    elif intent == "payroll":
+        dynamic_rule = "CRITICAL FOCUS: Payroll calculation, Salary structures, and Compensation."
+    elif intent == "recruitment":
+        dynamic_rule = "CRITICAL FOCUS: Oracle Recruiting Cloud (ORC), Job Requisitions, Candidate Sourcing, and Onboarding."
+    else:
+        dynamic_rule = "CRITICAL FOCUS: General HR and Oracle HCM guidance."
+
+    system_prompt = f"""You are a senior HR consultant and Oracle HCM Cloud specialist.
+    Context: Indian IT company
+    Tone: Professional
+
+    {dynamic_rule}
+
+    How you respond:
+    - Always give clear, structured, professional answers
+    - Use bullet points for complex topics
+    - If a question is outside HR scope, politely redirect
+    - Keep answers concise but complete
+
+    Think step by step before answering complex HR policy questions.
+
+    Examples:
+    Q: What is an Annual Leave policy?
+    A: Annual Leave Policy:
+       - Employees are entitled to X days per year
+       - Must be approved by line manager
+       - Cannot be carried forward beyond March 31
+       - Encashment allowed up to 50% of balance
+    """
+
+    # Add the raw user question to memory
     conversation.append({
         "role": "user",
         "content": user_message
     })
+
+    # Sliding window: only send last 6 messages (3 Q&A turns) to avoid clutter
+    recent_history = conversation[-6:]
 
     response = client.chat.completions.create(
         temperature=0.3,
         max_tokens=1024,
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": """You are a senior HR consultant and Oracle HCM Cloud specialist with 10+ years of experience. 
-
-You have deep expertise in:
-- Oracle HCM Core HR (employee lifecycle, org structures, positions)
-- Talent Management (performance, goals, succession planning)
-- Absence Management (leave policies, accruals, entitlements)
-- HR policies, compliance, and best practices
-
-How you respond:
-- Always give clear, structured, professional answers
-- Use bullet points for complex topics
-- If a question is outside HR scope, politely redirect
-- Keep answers concise but complete
-
-Think step by step before answering complex HR policy questions.
-
-Here are examples of how to answer:
-
-Q: What is an Annual Leave policy?
-A: Annual Leave Policy:
-   - Employees are entitled to X days per year
-   - Must be approved by line manager
-   - Cannot be carried forward beyond March 31
-   - Encashment allowed up to 50% of balance
-
-Q: What is a probation period?
-A: Probation Period:
-   - Standard duration: 3-6 months
-   - Performance reviewed at end of period
-   - Can be extended by manager if needed
-   - Full benefits apply after confirmation
-
-Now answer all questions in the same structured format.
-"""}
-        ] + conversation
+            {"role": "system", "content": system_prompt}
+        ] + recent_history
     )
 
     ai_reply = response.choices[0].message.content
@@ -152,13 +151,8 @@ def run_chatbot():
         intent = detect_intent(user_input)
         print(f"\n📌 Topic detected: {intent.upper()}")
         print("\n🤖 Bot: thinking...")
-        formatted_input = create_hr_prompt(
-            topic=user_input,
-            context="Indian IT company",
-            tone="professional"
-        )
 
-        ai_reply, conversation = ask_hr_bot(formatted_input, conversation)
+        ai_reply, conversation = ask_hr_bot(user_input, conversation, intent)
         structured_response = format_response(ai_reply, intent, user_input)
         print(f"\n📌 Topic: {structured_response['topic'].upper()}")
         print(f"\n🤖 Bot: {structured_response['answer']}")
